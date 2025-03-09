@@ -1,12 +1,15 @@
-/**
- * Creates the LocationSchema for the LocationsModel.
- * It defines the properties of a location document
- * from the locations collection in the foodfinder database
- */
-import { Schema, InferSchemaType } from "mongoose";
+import mongoose,
+{
+    model,
+    Schema,
+    InferSchemaType
+} from "mongoose";
 
-// create the Schema corresponding to the document interface.
-export const UserSchema: Schema = new Schema<UserType>({
+export const UserSchema: Schema = new Schema({
+    _id: {
+        type: Schema.Types.ObjectId,
+        auto: true
+    },
     username: {
         type: String,
         unique: true,
@@ -16,6 +19,17 @@ export const UserSchema: Schema = new Schema<UserType>({
         type: String,
         required: true
     },
+    accessToken: {
+        type: String,
+        default: null
+    },
+    refreshToken: {
+        type: String,
+        default: null
+    },
 });
 
-export declare type UserType = InferSchemaType<typeof UserSchema>;
+export type UserType = InferSchemaType<typeof UserSchema>;
+const User = mongoose.models.User ||
+    model<UserType>("User", UserSchema);
+export default User;

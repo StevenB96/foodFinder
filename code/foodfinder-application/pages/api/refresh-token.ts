@@ -4,17 +4,16 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../middleware/db-connect';
 import User from '../../mongoose/users/model';
 // Import libraries
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 // API Reference:
-// Endpoint: /api/login
+// Endpoint: /api/refresh-token
 // Method: POST
-// Description: Log in a user by validating the username and password, then issuing tokens.
-// Responds with user session data on success (HTTP 200) or error messages on failure:
-// - 400: Username and password are required
-// - 401: Invalid username or password
-// - 500: Internal server error
+// Description: Refresh the user's access token using a valid refresh token.
+// Responds with new access and refresh tokens on success (HTTP 200) or error messages on failure:
+// - 401: Refresh token is required
+// - 403: Invalid refresh token or User not found
+// - 500: Server error
 // - 405: Method not allowed
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -25,37 +24,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        await dbConnect(); // Connect to the database
+        await dbConnect();
 
-        // Validate username and password from request body
-        const { username, password } = req.body;
+        const { refreshToken } = req.body;
 
-        if (!username || !password) {
-            return res.status(400).json({
-                message: 'Username and password are required'
+        // Check for refresh token
+        if (!refreshToken) {
+            return res.status(401).json({
+                message: 'Refresh token is required'
             });
         }
 
-        // Search for the user in the database
-        const user = await User.findOne({ username });
+        // Verify the refresh token
+        let decoded;
+        try {
+            decoded = jwt.verify(refreshToken, process.env.JWT_SECRET as string);
+        } catch (error) {
+            return res.status(403).json({
+                message: 'Invalid refresh token'
+            });
+        }
 
+        // Find the user in the database
+        const user = await User.findById(decoded.userId);
         if (!user) {
-            return res.status(401).json({
-                message: 'Invalid username'
+            return res.status(403).json({
+                message: 'User not found'
             });
         }
 
-        // Compare provided password with stored hash
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                message: 'Invalid password'
+        // Check if the refresh token matches the one in the database
+        if (user.refreshToken !== refreshToken) {
+            return res.status(403).json({
+                message: 'Invalid refresh token'
             });
         }
 
         // Create access token
-        const accessToken = jwt.sign(
+        const newAccessToken = jwt.sign(
             {
                 userId: user._id,
                 username: user.username
@@ -65,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
 
         // Create refresh token
-        const refreshToken = jwt.sign(
+        const newRefreshToken = jwt.sign(
             {
                 userId: user._id
             },
@@ -74,8 +80,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         );
 
         // Assign tokens to the user
-        user.accessToken = accessToken;
-        user.refreshToken = refreshToken;
+        user.accessToken = newAccessToken;
+        user.refreshToken = newRefreshToken;
         await user.save();
 
         // Prepare user session data
@@ -90,9 +96,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json(userSession);
 
     } catch (error) {
-        console.error("Error logging in user:", error);
+        console.error("Error refreshing token:", error);
         return res.status(500).json({
-            message: 'Error logging in user: ' + error.message
+            message: 'Internal server error'
         });
     }
 }
