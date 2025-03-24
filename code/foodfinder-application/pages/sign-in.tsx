@@ -1,4 +1,4 @@
-// pages/landing.tsx
+// pages/sign-in.tsx
 import React,
 {
     useEffect,
@@ -11,9 +11,9 @@ import axios from 'axios';
 import {
     useRouter
 } from 'next/router';
-import styles from '../styles/landing.module.css';
+import styles from '../styles/auth.module.css';
 
-const Landing: React.FC = () => {
+const SignIn: React.FC = () => {
     const { session, signIn } = useAuth();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -24,7 +24,7 @@ const Landing: React.FC = () => {
 
     useEffect(() => {
         if (session) {
-            router.push('/logout');
+            router.push('/sign-out');
         }
     }, [session, router]);
 
@@ -91,4 +91,4 @@ const Landing: React.FC = () => {
     );
 };
 
-export default Landing;
+export default SignIn;

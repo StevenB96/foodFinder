@@ -45,8 +45,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Find the user in the database
-        const user = await User.findById(decoded.userId);
+        // Fetch the user from the database using the decoded user ID
+        const userId = typeof decoded === 'object' && decoded?.userId;
+        const user = await User.findById(userId);
         if (!user) {
             return res.status(403).json({
                 message: 'User not found'

@@ -46,7 +46,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Fetch the user from the database using the decoded user ID
-        const user = await User.findById(decoded.userId);
+        const userId = typeof decoded === 'object' && decoded?.userId;
+        const user = await User.findById(userId);
 
         // If user is not found, respond with a 404 error
         if (!user) {
@@ -68,8 +69,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (error) {
         // Handle any unexpected errors
         console.error("Error logging out:", error);
+
+        // Type check to see if the error is an instance of Error
+        const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error occurred';
+
         return res.status(500).json({
-            message: 'Error logging out: ' + error.message
+            message: 'Error logging out: ' + errorMessage
         });
     }
 }

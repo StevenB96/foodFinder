@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 // API Reference:
-// Endpoint: /api/login
+// Endpoint: /api/sign-in
 // Method: POST
 // Description: Log in a user by validating the username and password, then issuing tokens.
 // Responds with user session data on success (HTTP 200) or error messages on failure:
@@ -89,10 +89,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Respond with user session data
         return res.status(200).json(userSession);
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Error logging in user:", error);
+    
+        // Type assertion to Error
+        const errorMessage = (error as Error).message || 'Unknown error occurred';
+        
         return res.status(500).json({
-            message: 'Error logging in user: ' + error.message
+            message: 'Error logging in user: ' + errorMessage
         });
     }
 }

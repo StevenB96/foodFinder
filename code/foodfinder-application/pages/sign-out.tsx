@@ -1,4 +1,4 @@
-// pages/logout.tsx
+// pages/sign-out.tsx
 import React from 'react';
 import {
     useAuth
@@ -7,13 +7,13 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import {
     useRouter
 } from 'next/router';
-import styles from '../styles/landing.module.css';
+import styles from '../styles/auth.module.css';
 
-const Logout: React.FC = () => {
+const SignOut: React.FC = () => {
     const { signOut } = useAuth();
     const router = useRouter();
 
-    const handleLogout = async () => {
+    const handleSignOut = async () => {
         await signOut();
         router.push('/');
     };
@@ -26,7 +26,7 @@ const Logout: React.FC = () => {
                 </h2>
                 <button
                     className={styles.button}
-                    onClick={handleLogout}>
+                    onClick={handleSignOut}>
                     Yes, Log Out
                 </button>
             </div>
@@ -34,4 +34,4 @@ const Logout: React.FC = () => {
     );
 };
 
-export default Logout;
+export default SignOut;

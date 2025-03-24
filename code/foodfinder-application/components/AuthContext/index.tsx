@@ -4,7 +4,9 @@ import React, {
     useState,
     ReactNode
 } from 'react';
-import axios from 'axios';
+import axios, {
+    AxiosError
+} from 'axios';
 
 // Define the UserSession interface
 interface UserSession {
@@ -21,7 +23,7 @@ interface AuthContextType {
         username: string,
         password: string
     ) => Promise<UserSession>;
-    signOut: () => Promise<void>;
+    signOut: (freshSession: UserSession | void) => Promise<void>;
     refreshAccessToken: () => Promise<UserSession>;
 }
 
@@ -62,11 +64,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Update state with the new session
             setSession(updatedSession);
             return updatedSession; // Return the updated session
-        } catch (error) {
-            console.error(
-                'Could not refresh token:',
-                error.response ? error.response.data : error.message
-            );
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                console.error(
+                    'Could not refresh token:',
+                    error.response ? error.response.data : error.message
+                );
+            } else {
+                console.error('An unknown error occurred:', error);
+            }
             throw error;
         }
     };
@@ -78,7 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ): Promise<UserSession> => {
         try {
             const { data: userSession } = await axios.post<UserSession>(
-                '/api/login',
+                '/api/sign-in',
                 {
                     username,
                     password
@@ -88,17 +94,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setSession(userSession);
 
             return userSession;
-        } catch (error) {
-            if (error?.response?.status === 401) {
-                const errMessage = error?.response.data?.message;
-                console.error(errMessage);
+            // Your code here (e.g., API call)
+        } catch (error: unknown) {
+            if (error instanceof AxiosError) {
+                if (error.response && error.response.status === 401) {
+                    const errMessage = error.response.data?.message;
+                    console.error(errMessage);
+                }
+            } else {
+                console.error('An unexpected error occurred:', error);
             }
-            throw error;
+
+            throw error; // Re-throw if necessary
         }
     };
 
     // Sign out function
-    const signOut = async (freshSession: UserSession | null): Promise<void> => {
+    const signOut = async (freshSession: UserSession | void): Promise<void> => {
         try {
             const currentSession = freshSession || session;
             const accessToken = currentSession?.accessToken;
@@ -109,7 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
             const response = await axios.post(
-                '/api/logout',
+                '/api/sign-out',
                 {},
                 {
                     headers: {
@@ -123,7 +135,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setSession(null);
             } else {
                 console.error(
-                    'Logout request was made but not successful:',
+                    'Sign out request was made but not successful:',
                     response
                 );
             }

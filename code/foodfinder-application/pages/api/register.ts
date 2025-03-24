@@ -68,8 +68,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Respond with user session data
         res.status(201).json(userSession);
     } catch (error) {
+        // Handle any unexpected errors
+        console.error("Error registering:", error);
+
+        const errorMessage =
+            error instanceof Error ? error.message : 'An unknown error occurred';
+    
         return res.status(500).json({
-            message: 'Error registering user: ' + error.message,
+            message: 'Error registering user: ' + errorMessage,
         });
     }
 }
