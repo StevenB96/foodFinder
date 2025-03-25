@@ -6,6 +6,7 @@ import User from '../../mongoose/users/model';
 // Import libraries
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import * as cookie from 'cookie';
 
 // API Reference:
 // Endpoint: /api/sign-in
@@ -67,10 +68,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Create refresh token
         const refreshToken = jwt.sign(
             {
-                userId: user._id
+                userId: user._id,
+                username: user.username
             },
             process.env.JWT_SECRET as string,
-            { expiresIn: '1d' }
+            { expiresIn: '1h' }
         );
 
         // Assign tokens to the user
@@ -78,23 +80,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         user.refreshToken = refreshToken;
         await user.save();
 
-        // Prepare user session data
-        const userSession = {
+        // Set expiration dates for the cookies
+        const accessTokenExpires = new Date(
+            Date.now() + 24 * 60 * 60 * 1000
+        );
+        const refreshTokenExpires = new Date(
+            Date.now() + 24 * 60 * 60 * 1000
+        );
+
+        // Set access token and refresh token as cookies
+        res.setHeader('Set-Cookie', [
+            cookie.serialize('accessToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/',
+                expires: accessTokenExpires
+            }),
+            cookie.serialize('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/',
+                expires: refreshTokenExpires
+            })
+        ]);
+
+        // Construct user object
+        const userObject = {
             id: user._id.toString(),
             username: user.username,
-            accessToken: user.accessToken,
-            refreshToken: user.refreshToken,
         };
 
-        // Respond with user session data
-        return res.status(200).json(userSession);
+        // Respond with user data
+        res.status(200).json(userObject);
 
     } catch (error: unknown) {
         console.error("Error logging in user:", error);
-    
+
         // Type assertion to Error
         const errorMessage = (error as Error).message || 'Unknown error occurred';
-        
+
         return res.status(500).json({
             message: 'Error logging in user: ' + errorMessage
         });

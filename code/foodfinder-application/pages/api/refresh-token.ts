@@ -5,6 +5,7 @@ import dbConnect from '../../middleware/db-connect';
 import User from '../../mongoose/users/model';
 // Import libraries
 import jwt from 'jsonwebtoken';
+import * as cookie from 'cookie';
 
 // API Reference:
 // Endpoint: /api/refresh-token
@@ -26,7 +27,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         await dbConnect();
 
-        const { refreshToken } = req.body;
+        // Extract the refresh token from cookies
+        const cookies = cookie.parse(req.headers.cookie || '');
+        const refreshToken = cookies.refreshToken;
 
         // Check for refresh token
         if (!refreshToken) {
@@ -61,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Create access token
+        // Create new access token
         const newAccessToken = jwt.sign(
             {
                 userId: user._id,
@@ -71,30 +74,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             { expiresIn: '1m' }
         );
 
-        // Create refresh token
+        // Create new refresh token
         const newRefreshToken = jwt.sign(
             {
-                userId: user._id
+                userId: user._id,
+                username: user.username
             },
             process.env.JWT_SECRET as string,
             { expiresIn: '1d' }
         );
 
-        // Assign tokens to the user
+        // Assign tokens to the user (optionally save them in DB, if needed)
         user.accessToken = newAccessToken;
         user.refreshToken = newRefreshToken;
         await user.save();
 
-        // Prepare user session data
-        const userSession = {
-            id: user._id.toString(),
-            username: user.username,
-            accessToken: user.accessToken,
-            refreshToken: user.refreshToken,
-        };
+        // Set expiration dates for the cookies
+        const accessTokenExpires = new Date(
+            Date.now() + 24 * 60 * 60 * 1000
+        );
+        const refreshTokenExpires = new Date(
+            Date.now() + 24 * 60 * 60 * 1000
+        );
 
-        // Respond with user session data
-        return res.status(200).json(userSession);
+        // Set new access token and refresh token as cookies
+        res.setHeader('Set-Cookie', [
+            cookie.serialize('accessToken', newAccessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/',
+                expires: accessTokenExpires
+            }),
+            cookie.serialize('refreshToken', newRefreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/',
+                expires: refreshTokenExpires
+            })
+        ]);
+
+        // Respond with a success message (no need to return the token data in the body)
+        return res.status(200).json({
+            message: 'Tokens refreshed successfully'
+        });
 
     } catch (error) {
         console.error("Error refreshing token:", error);

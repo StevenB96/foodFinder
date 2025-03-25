@@ -14,4 +14,5 @@ import {
   UserType
 } from "mongoose/users/schema";
 
-export default mongoose.models.User || model<UserType>("User", UserSchema);
+export default mongoose.models.User ||
+  model<UserType>("User", UserSchema);

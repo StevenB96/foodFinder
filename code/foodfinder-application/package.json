@@ -20,6 +20,7 @@
         "axios": "^1.8.2",
         "bcryptjs": "^3.0.2",
         "chapter10-provider": "^1.0.0",
+        "cookie": "^1.0.2",
         "eslint": "8.30.0",
         "eslint-config-next": "13.1.1",
         "graphql": "^16.6.0",

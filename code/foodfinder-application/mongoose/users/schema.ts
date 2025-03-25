@@ -32,4 +32,5 @@ export const UserSchema: Schema = new Schema({
 export type UserType = InferSchemaType<typeof UserSchema>;
 const User = mongoose.models.User ||
     model<UserType>("User", UserSchema);
+    
 export default User;

@@ -2,12 +2,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 // Import libraries
 import jwt from 'jsonwebtoken';
+import * as cookie from 'cookie';
 // Import middleware and models
 import dbConnect from '../../middleware/db-connect';
 import User from '../../mongoose/users/model';
 
 // API Reference:
-// Endpoint: /api/logout
+// Endpoint: /api/sign-out
 // Method: POST
 // Description: Log out a user by invalidating their access and refresh tokens.
 // Responds with a success message on successful logout (HTTP 200) or error messages on failure:
@@ -26,8 +27,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         await dbConnect();
 
-        // Extract access token from headers
-        const accessToken = req.headers?.authorization?.split(' ')[1];
+        // Extract access token from cookies
+        const cookies = cookie.parse(req.headers.cookie || '');
+        const accessToken = cookies.accessToken;
 
         if (!accessToken) {
             return res.status(401).json({
@@ -60,6 +62,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         user.accessToken = null;
         user.refreshToken = null;
         await user.save();
+
+        // Clear the session cookies
+        res.setHeader('Set-Cookie', [
+            cookie.serialize('accessToken', '', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/',
+                expires: new Date(0)
+            }),
+            cookie.serialize('refreshToken', '', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/',
+                expires: new Date(0)
+            }),
+        ]);
 
         // Respond with a success message
         return res.status(200).json({

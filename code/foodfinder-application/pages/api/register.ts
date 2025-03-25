@@ -5,6 +5,7 @@ import dbConnect from '../../middleware/db-connect';
 import User from '../../mongoose/users/model';
 // Import libraries
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 // API Reference:
 // Endpoint: /api/register
@@ -27,23 +28,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await dbConnect();
 
         // Extract username and password from the request body
-        const { username, password } = req.body;
+        const {
+            username,
+            password
+        } = req.body;
 
         // Validate input for username and password
-        if (!username || !password || password.length < 8) {
-            return res.status(400).json({ 
-                message: 'Invalid input' 
+        if (
+            !username ||
+            !password ||
+            password.length < 8
+        ) {
+            return res.status(400).json({
+                message: 'Invalid input'
             });
         }
 
         // Check if the user already exists
-        const existingUser = await User.findOne({ 
-            username 
+        const existingUser = await User.findOne({
+            username
         });
 
         if (existingUser) {
-            return res.status(409).json({ 
-                message: 'User already exists' 
+            return res.status(409).json({
+                message: 'User already exists'
             });
         }
 
@@ -59,21 +67,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Save the new user in the database
         await newUser.save();
 
-        // Construct user session object
-        const userSession = {
-            id: newUser._id.toString(),
-            username: newUser.username,
-        };
-
-        // Respond with user session data
-        res.status(201).json(userSession);
+        res.status(200).json({
+            message: 'Registered successfully'
+        });
     } catch (error) {
         // Handle any unexpected errors
         console.error("Error registering:", error);
 
         const errorMessage =
             error instanceof Error ? error.message : 'An unknown error occurred';
-    
+
         return res.status(500).json({
             message: 'Error registering user: ' + errorMessage,
         });
