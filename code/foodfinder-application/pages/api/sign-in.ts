@@ -5,8 +5,9 @@ import dbConnect from '../../middleware/db-connect';
 import User from '../../mongoose/users/model';
 // Import libraries
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import * as cookie from 'cookie';
+import {
+    createNewTokens
+} from '../../lib/auth';
 
 // API Reference:
 // Endpoint: /api/sign-in
@@ -47,7 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Compare provided password with stored hash
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = await bcrypt.compare(
+            password,
+            user.password
+        );
 
         if (!isPasswordValid) {
             return res.status(401).json({
@@ -55,56 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Create access token
-        const accessToken = jwt.sign(
-            {
-                userId: user._id,
-                username: user.username
-            },
-            process.env.JWT_SECRET as string,
-            { expiresIn: '1m' }
-        );
-
-        // Create refresh token
-        const refreshToken = jwt.sign(
-            {
-                userId: user._id,
-                username: user.username
-            },
-            process.env.JWT_SECRET as string,
-            { expiresIn: '1h' }
-        );
-
-        // Assign tokens to the user
-        user.accessToken = accessToken;
-        user.refreshToken = refreshToken;
-        await user.save();
-
-        // Set expiration dates for the cookies
-        const accessTokenExpires = new Date(
-            Date.now() + 24 * 60 * 60 * 1000
-        );
-        const refreshTokenExpires = new Date(
-            Date.now() + 24 * 60 * 60 * 1000
-        );
-
-        // Set access token and refresh token as cookies
-        res.setHeader('Set-Cookie', [
-            cookie.serialize('accessToken', accessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                path: '/',
-                expires: accessTokenExpires
-            }),
-            cookie.serialize('refreshToken', refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                path: '/',
-                expires: refreshTokenExpires
-            })
-        ]);
+        const tokens = await createNewTokens(user._id, res);
 
         // Construct user object
         const userObject = {

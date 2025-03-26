@@ -6,6 +6,9 @@ import User from '../../mongoose/users/model';
 // Import libraries
 import jwt from 'jsonwebtoken';
 import * as cookie from 'cookie';
+import {
+    createNewTokens
+} from '../../lib/auth';
 
 // API Reference:
 // Endpoint: /api/refresh-token
@@ -41,7 +44,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Verify the refresh token
         let decoded;
         try {
-            decoded = jwt.verify(refreshToken, process.env.JWT_SECRET as string);
+            decoded = jwt.verify(
+                refreshToken,
+                process.env.JWT_SECRET as string
+            );
         } catch (error) {
             return res.status(403).json({
                 message: 'Invalid refresh token'
@@ -64,58 +70,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // Create new access token
-        const newAccessToken = jwt.sign(
-            {
-                userId: user._id,
-                username: user.username
-            },
-            process.env.JWT_SECRET as string,
-            { expiresIn: '1m' }
-        );
-
-        // Create new refresh token
-        const newRefreshToken = jwt.sign(
-            {
-                userId: user._id,
-                username: user.username
-            },
-            process.env.JWT_SECRET as string,
-            { expiresIn: '1d' }
-        );
-
-        // Assign tokens to the user (optionally save them in DB, if needed)
-        user.accessToken = newAccessToken;
-        user.refreshToken = newRefreshToken;
-        await user.save();
-
-        // Set expiration dates for the cookies
-        const accessTokenExpires = new Date(
-            Date.now() + 24 * 60 * 60 * 1000
-        );
-        const refreshTokenExpires = new Date(
-            Date.now() + 24 * 60 * 60 * 1000
-        );
-
-        // Set new access token and refresh token as cookies
-        res.setHeader('Set-Cookie', [
-            cookie.serialize('accessToken', newAccessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                path: '/',
-                expires: accessTokenExpires
-            }),
-            cookie.serialize('refreshToken', newRefreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                path: '/',
-                expires: refreshTokenExpires
-            })
-        ]);
-
-        // Respond with a success message (no need to return the token data in the body)
+        const tokens = await createNewTokens(user._id, res);
+        
         return res.status(200).json({
             message: 'Tokens refreshed successfully'
         });

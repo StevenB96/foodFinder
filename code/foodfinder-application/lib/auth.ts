@@ -1,5 +1,78 @@
-import jwt from "jsonwebtoken";
+import { NextApiResponse } from 'next';
+import jwt from 'jsonwebtoken';
 import * as cookie from 'cookie';
+import type { SerializeOptions } from 'cookie';
+import dbConnect from '../middleware/db-connect';
+import User from '../mongoose/users/model';
+
+/**
+ * This minimal interface ensures we have access to `setHeader`,
+ * which is the only method required for setting cookies.
+ */
+interface ResponseWithHeader {
+    setHeader: (name: string, value: any) => void;
+}
+
+const COOKIE_OPTIONS: SerializeOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/'
+};
+
+// Helper to calculate cookie expiration date (default: 1 day)
+const getCookieExpiration = (days: number = 1): Date =>
+    new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+export const createNewTokens = async (
+    userId: number,
+    res: ResponseWithHeader
+): Promise<{ newAccessToken: string; newRefreshToken: string } | null> => {
+    try {
+        await dbConnect();
+
+        if (!userId) {
+            throw new Error('User ID is required to generate tokens.');
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new Error('User not found.');
+        }
+
+        const payload = {
+            userId: user._id,
+            username: user.username
+        };
+
+        const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET as string, {
+            expiresIn: '1m'
+        });
+        const newRefreshToken = jwt.sign(payload, process.env.JWT_SECRET as string, {
+            expiresIn: '2m'
+        });
+
+        user.accessToken = newAccessToken;
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+        res.setHeader('Set-Cookie', [
+            cookie.serialize('accessToken', newAccessToken, {
+                ...COOKIE_OPTIONS,
+                expires: getCookieExpiration(1)
+            }),
+            cookie.serialize('refreshToken', newRefreshToken, {
+                ...COOKIE_OPTIONS,
+                expires: getCookieExpiration(1)
+            })
+        ]);
+
+        return { newAccessToken, newRefreshToken };
+    } catch (error) {
+        console.error('Error generating tokens:', error);
+        return null;
+    }
+};
 
 export const verifyAccessToken = (
     accessToken: string | undefined,
@@ -7,19 +80,13 @@ export const verifyAccessToken = (
 ) => {
     try {
         if (!accessToken) {
-            throw new Error("No access token provided");
+            throw new Error('No access token provided.');
         }
 
-        // Verify the token with the provided secret
         const decodedAccessToken = jwt.verify(accessToken, secret);
-
-        console.log({ decodedAccessToken });
-
         return decodedAccessToken;
     } catch (error) {
-        console.error(
-            "Invalid or expired access token"
-        );
+        console.error('Invalid or expired access token:', error);
         return false;
     }
 };
@@ -27,75 +94,63 @@ export const verifyAccessToken = (
 export const refreshAccessToken = async (
     refreshToken: string | undefined,
     secret: string,
-    resContext: object | undefined,
+    res: ResponseWithHeader
 ) => {
     try {
         if (!refreshToken) {
-            throw new Error("No access token provided");
+            throw new Error('No refresh token provided.');
         }
 
-        // Verify the token with the provided secret
         const decodedRefreshToken = jwt.verify(refreshToken, secret);
+        const userId =
+            typeof decodedRefreshToken === 'object' &&
+            'userId' in decodedRefreshToken &&
+            decodedRefreshToken.userId;
 
-        const {
-            userId,
-            username,
-        } = decodedRefreshToken;
+        if (!userId) {
+            throw new Error('Invalid token payload.');
+        }
 
-        console.log({ decodedRefreshToken });
-
-        return decodedRefreshToken;
+        const tokens = await createNewTokens(userId, res);
+        return tokens;
     } catch (error) {
-        console.error(
-            "Invalid or expired refresh token"
-        );
+        console.error('Invalid or expired refresh token:', error);
         return false;
     }
 };
 
-export const getOAuthTokensFromCookies = (
-    cookieHeader: string | undefined
-) => {
-    const cookies = cookie.parse(cookieHeader || "");
+export const getOAuthTokensFromCookies = (cookieHeader: string | undefined) => {
+    const cookies = cookie.parse(cookieHeader || '');
     return {
         accessToken: cookies.accessToken,
-        refreshToken: cookies.refreshToken,
+        refreshToken: cookies.refreshToken
     };
 };
 
 export const authenticate = async (
     cookieHeader: string | undefined,
-    resContext: object | undefined
+    res: ResponseWithHeader
 ) => {
-    // Extract tokens from cookies
-    const {
-        accessToken,
-        refreshToken
-    } = getOAuthTokensFromCookies(cookieHeader);
+    const { accessToken, refreshToken } = getOAuthTokensFromCookies(cookieHeader);
 
-    // Verify the access token using the utility function
     const decodedAccessToken = verifyAccessToken(
         accessToken,
         process.env.JWT_SECRET as string
     );
 
-    // If access token is valid, return true
     if (decodedAccessToken) {
         return true;
     }
 
-    // Attempt to refresh the access token
-    const accessTokenRefreshed = await refreshAccessToken(
-        refreshToken, 
-        process.env.JWT_SECRET as string, 
-        resContext
+    const refreshedTokens = await refreshAccessToken(
+        refreshToken,
+        process.env.JWT_SECRET as string,
+        res
     );
 
-    // If access token is refreshed, return true
-    if (accessTokenRefreshed) {
+    if (refreshedTokens) {
         return true;
     }
 
-    throw new Error("Authentication failed: Invalid or expired token. Please log in again.");
+    throw new Error('Authentication failed: Invalid or expired token. Please log in again.');
 };
-
