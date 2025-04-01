@@ -20,7 +20,10 @@ import {
 // - 500: Server error
 // - 405: Method not allowed
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+    req: NextApiRequest, 
+    res: NextApiResponse,
+) {
     // Method not allowed
     if (req.method !== 'GET') {
         res.setHeader('Allow', ['GET']);

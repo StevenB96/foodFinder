@@ -1,32 +1,33 @@
+import {
+    NextResponse,
+    NextRequest
+} from 'next/server';
 import jwt from 'jsonwebtoken';
 import * as cookie from 'cookie';
 import type { SerializeOptions } from 'cookie';
 import dbConnect from '../middleware/db-connect';
 import User from '../mongoose/users/model';
 
-/**
- * This minimal interface ensures we have access to `setHeader`,
- * which is the only method required for setting cookies.
- */
-interface ResponseWithHeader {
-    setHeader: (name: string, value: any) => void;
-}
+// const COOKIE_OPTIONS: SerializeOptions = {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV === 'production',
+//     sameSite: 'strict',
+//     path: '/'
+// };
 
-const COOKIE_OPTIONS: SerializeOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/'
-};
-
-// Helper to calculate cookie expiration date (default: 1 day)
-const getCookieExpiration = (days: number = 1): Date =>
-    new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+// // Helper to calculate cookie expiration date (default: 1 day)
+// const getCookieExpiration = (days: number = 1): Date =>
+//     new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
 export const createNewTokens = async (
     userId: number,
-    res: ResponseWithHeader
-): Promise<{ newAccessToken: string; newRefreshToken: string } | null> => {
+    res: any,
+): Promise<{
+    newAccessToken: string;
+    newRefreshToken: string
+} | null> => {
+    const response = res || NextResponse.next();
+
     try {
         await dbConnect();
 
@@ -44,29 +45,44 @@ export const createNewTokens = async (
             username: user.username
         };
 
-        const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET as string, {
-            expiresIn: '1m'
-        });
-        const newRefreshToken = jwt.sign(payload, process.env.JWT_SECRET as string, {
-            expiresIn: '2m'
-        });
+        const newAccessToken = jwt.sign(
+            payload,
+            process.env.JWT_SECRET as string,
+            {
+                expiresIn: '1m'
+            }
+        );
+
+        const newRefreshToken = jwt.sign(
+            payload, process.env.JWT_SECRET as string,
+            {
+                expiresIn: '2m'
+            }
+        );
 
         user.accessToken = newAccessToken;
         user.refreshToken = newRefreshToken;
+
         await user.save();
 
-        res.setHeader('Set-Cookie', [
-            cookie.serialize('accessToken', newAccessToken, {
-                ...COOKIE_OPTIONS,
-                expires: getCookieExpiration(1)
-            }),
-            cookie.serialize('refreshToken', newRefreshToken, {
-                ...COOKIE_OPTIONS,
-                expires: getCookieExpiration(1)
-            })
-        ]);
+        response.cookies.set('accessToken', newAccessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+        });
 
-        return { newAccessToken, newRefreshToken };
+        response.cookies.set('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+        });
+
+        return {
+            newAccessToken,
+            newRefreshToken
+        };
     } catch (error) {
         console.error('Error generating tokens:', error);
         return null;
@@ -74,7 +90,7 @@ export const createNewTokens = async (
 };
 
 export const verifyAccessToken = (
-    accessToken: string | undefined,
+    accessToken: any,
     secret: string
 ) => {
     try {
@@ -83,6 +99,7 @@ export const verifyAccessToken = (
         }
 
         const decodedAccessToken = jwt.verify(accessToken, secret);
+
         return decodedAccessToken;
     } catch (error) {
         console.error('Invalid or expired access token:', error);
@@ -91,9 +108,8 @@ export const verifyAccessToken = (
 };
 
 export const refreshAccessToken = async (
-    refreshToken: string | undefined,
+    refreshToken: any,
     secret: string,
-    res: ResponseWithHeader
 ) => {
     try {
         if (!refreshToken) {
@@ -101,6 +117,7 @@ export const refreshAccessToken = async (
         }
 
         const decodedRefreshToken = jwt.verify(refreshToken, secret);
+
         const userId =
             typeof decodedRefreshToken === 'object' &&
             'userId' in decodedRefreshToken &&
@@ -110,7 +127,8 @@ export const refreshAccessToken = async (
             throw new Error('Invalid token payload.');
         }
 
-        const tokens = await createNewTokens(userId, res);
+        const tokens = await createNewTokens(userId, null);
+
         return tokens;
     } catch (error) {
         console.error('Invalid or expired refresh token:', error);
@@ -118,19 +136,20 @@ export const refreshAccessToken = async (
     }
 };
 
-export const getOAuthTokensFromCookies = (cookieHeader: string | undefined) => {
-    const cookies = cookie.parse(cookieHeader || '');
+export const getOAuthTokensFromCookies = (request: NextRequest) => {
     return {
-        accessToken: cookies.accessToken,
-        refreshToken: cookies.refreshToken
+        accessToken: request.cookies.get('accessToken'),
+        refreshToken: request.cookies.get('refreshToken')
     };
 };
 
 export const authenticate = async (
-    cookieHeader: string | undefined,
-    res: ResponseWithHeader
+    request: NextRequest,
 ) => {
-    const { accessToken, refreshToken } = getOAuthTokensFromCookies(cookieHeader);
+    const {
+        accessToken,
+        refreshToken
+    } = getOAuthTokensFromCookies(request);
 
     const decodedAccessToken = verifyAccessToken(
         accessToken,
@@ -144,12 +163,13 @@ export const authenticate = async (
     const refreshedTokens = await refreshAccessToken(
         refreshToken,
         process.env.JWT_SECRET as string,
-        res
     );
 
     if (refreshedTokens) {
         return true;
     }
 
-    throw new Error('Authentication failed: Invalid or expired token. Please log in again.');
+    throw new Error(
+        'Authentication failed: Invalid or expired token. Please log in again.'
+    );
 };

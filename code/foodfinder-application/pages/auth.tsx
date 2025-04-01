@@ -5,7 +5,9 @@ import React,
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import styles from '../styles/auth.module.css';
-import Wrapper from '../components/wrapper';
+
+import Main from '../components/main';
+import { withAuth } from '../components/withAuth';
 
 const Auth: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -57,7 +59,7 @@ const Auth: React.FC = () => {
     };
 
     return (
-        <Wrapper>
+        <Main>
             <div className={styles.container}>
                 <div>
                     <h2 className={styles.title}>{isRegistering ? 'Register' : 'Sign In'}</h2>
@@ -102,8 +104,10 @@ const Auth: React.FC = () => {
                     </button>
                 </div>
             </div>
-        </Wrapper>
+        </Main>
     );
 };
+
+export const getServerSideProps = withAuth();
 
 export default Auth;
