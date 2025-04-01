@@ -1,4 +1,3 @@
-import { NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import * as cookie from 'cookie';
 import type { SerializeOptions } from 'cookie';

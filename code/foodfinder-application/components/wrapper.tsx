@@ -2,11 +2,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import axios from 'axios';
 import styles from '../styles/wrapper.module.css';
 
 interface NavLink {
     name: string;
     path: string;
+    protected?: boolean;
     children?: NavLink[];
 }
 
@@ -17,15 +19,18 @@ interface WrapperProps {
 const navLinks: NavLink[] = [
     {
         name: 'Home',
-        path: '/'
+        path: '/',
+        protected: true,
     },
     {
         name: 'Work Example',
-        path: '/about'
+        path: '/about',
+        protected: true,
     },
     {
         name: 'Projects',
         path: '/projects',
+        protected: true,
         children: [
             {
                 name: 'Professional',
@@ -40,10 +45,11 @@ const navLinks: NavLink[] = [
     {
         name: 'Profile',
         path: '/profile',
+        protected: true,
         children: [
             {
                 name: 'Logout',
-                path: '/api/logout'
+                path: '/api/sign-out'
             },
         ]
     },
@@ -56,6 +62,32 @@ const NavItem: React.FC<{ link: NavLink }> = ({ link }) => {
     // Helper to determine if the current link is active
     const isActive = router.pathname === link.path;
 
+    // Unified function to handle navigation or API calls behind the scenes
+    const handleNavigation = async (
+        e: React.MouseEvent,
+        link: NavLink,
+        post: boolean = false
+    ) => {
+        e.preventDefault();
+        if (link.path.startsWith('/api')) {
+            try {
+                const response = post
+                    ? await axios.post(link.path)
+                    : await axios.get(link.path);
+                console.log('API response:', response.data);
+            } catch (error: any) {
+                if (error.response && error.response.status === 401) {
+                    console.warn('Unauthorized! Redirecting to /auth');
+                    router.push('/auth');
+                } else {
+                    console.error('API call error:', error);
+                }
+            }
+        } else {
+            router.push(link.path);
+        }
+    };
+
     return (
         <div
             className={styles.navItem}
@@ -66,11 +98,17 @@ const NavItem: React.FC<{ link: NavLink }> = ({ link }) => {
                 <a
                     className={`${styles.link} ${isActive ? styles.activeLink : ''}`}
                     onClick={(e) => {
+                        // Toggle dropdown if there are children
                         if (link.children) {
-                            // Prevent navigation if there are children
                             e.preventDefault();
                             setIsOpen(!isOpen);
+                            return;
                         }
+                        handleNavigation(
+                            e,
+                            link,
+                            link.path.startsWith('/api')
+                        );
                     }}
                 >
                     {link.name}

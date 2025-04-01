@@ -4,7 +4,7 @@ import mongoose, {
     InferSchemaType
 } from "mongoose";
 
-export const LocationSchema: Schema = new Schema({
+export const CitySchema: Schema = new Schema({
     _id: {
         type: Schema.Types.ObjectId,
         auto: true
@@ -28,8 +28,8 @@ export const LocationSchema: Schema = new Schema({
     },
 });
 
-export type LocationType = InferSchemaType<typeof LocationSchema>;
-const Location = mongoose.models.Location || 
-model<LocationType>("Location", LocationSchema);
+export type CityType = InferSchemaType<typeof CitySchema>;
+const City = mongoose.models.City || 
+model<CityType>("City", CitySchema);
 
-export default Location;
+export default City;

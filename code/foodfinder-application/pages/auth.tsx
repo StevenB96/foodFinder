@@ -6,9 +6,6 @@ import axios from 'axios';
 import { useRouter } from 'next/router';
 import styles from '../styles/auth.module.css';
 import Wrapper from '../components/wrapper';
-import {
-    authenticate
-} from "../lib/auth";
 
 const Auth: React.FC = () => {
     const [username, setUsername] = useState('');
@@ -108,27 +105,5 @@ const Auth: React.FC = () => {
         </Wrapper>
     );
 };
-
-// export const getServerSideProps = async (context: any) => {
-//     const cookieHeader = context.req.headers.cookie || '';
-//     const resContext = context.res;
-
-//     try {
-//         await authenticate(cookieHeader, resContext);
-//     } catch (error) {
-//         console.error("Error verifying token:", error);
-
-//         return {
-//             redirect: {
-//                 destination: "/auth",
-//                 permanent: false,
-//             },
-//         };
-//     }
-
-//     return {
-//         props: {},
-//     };
-// };
 
 export default Auth;
