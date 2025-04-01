@@ -13,7 +13,7 @@ exports[`The Header component renders unchanged when logged in 1`] = `
         href="/"
       >
         <img
-          alt="Logo: Food Finder"
+          alt="Logo: City Finder"
           data-nimg="fill"
           decoding="async"
           sizes="100vw"
@@ -74,7 +74,7 @@ exports[`The Header component renders unchanged when logged out 1`] = `
         href="/"
       >
         <img
-          alt="Logo: Food Finder"
+          alt="Logo: City Finder"
           data-nimg="fill"
           decoding="async"
           sizes="100vw"

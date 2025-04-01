@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        const tokens = await createNewTokens(user._id, res);
+        await createNewTokens(user._id, res);
 
         // Construct user object
         const userObject = {

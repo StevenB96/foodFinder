@@ -1,17 +1,20 @@
 /* MyComponent.module.css */
 .container {
-  max-width: 400px;
-  margin: auto;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 20px auto;
+  max-width: 600px;
 }
 
 .title {
-  text-align: center;
-  color: #333;
+  font-size: 28px;
   margin-bottom: 20px;
+  color: var(--primary-color); /* Using primary color to match the profile title style */
 }
 
 .input {
@@ -21,20 +24,21 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   transition: border-color 0.3s ease;
+  font-size: 16px;
 }
 
 .input:focus {
-  border-color: #007bff;
+  border-color: var(--primary-color);
   outline: none;
 }
 
 .button {
   width: 100%;
-  padding: 10px;
-  margin: 10px 0;
+  padding: 12px;
+  margin: 15px 0;
   border: none;
   border-radius: 4px;
-  background-color: #007bff;
+  background-color: var(--primary-color);
   color: white;
   font-size: 16px;
   cursor: pointer;
@@ -42,25 +46,31 @@
 }
 
 .button:hover {
-  background-color: #0056b3;
+  background-color: var(--secondary-color); /* Hover effect with secondary color */
 }
 
 .error {
   color: #dc3545;
   text-align: center;
+  margin-bottom: 10px;
 }
 
 .success {
   color: #28a745;
   text-align: center;
+  margin-bottom: 10px;
 }
 
 .switchButton {
   background: none;
-  color: #007bff;
+  color: var(--primary-color);
   border: none;
   cursor: pointer;
   text-decoration: underline;
   display: block;
   margin-top: 15px;
+}
+
+.switchButton:hover {
+  text-decoration: none;
 }

@@ -1,0 +1,114 @@
+.wrapper {
+  /* Scoped CSS Variables */
+  --primary-color: #2575fc;
+  --secondary-color: #6a11cb;
+  --accent-color: #ffdd57;
+  --text-color: #333;
+  --bg-color: #f4f7f6;
+  --header-height: 70px;
+  --font-family: "Roboto", sans-serif;
+  --transition-duration: 0.3s;
+  --border-color: #eaeaea;
+  --shadow-light: rgba(0, 0, 0, 0.1);
+  --shadow-dropdown: rgba(0, 0, 0, 0.15);
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background: linear-gradient(90deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  box-shadow: 0 4px 6px var(--shadow-light);
+  z-index: 1000;
+}
+
+.nav {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.navItem {
+  position: relative;
+}
+
+.link {
+  color: #fff;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  transition: color var(--transition-duration) ease, transform var(--transition-duration) ease;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.link:hover,
+.activeLink {
+  color: var(--accent-color);
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background-color: #fff;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-dropdown);
+  padding: 8px 0;
+  z-index: 1001;
+  min-width: 180px;
+  border-radius: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-duration) ease, visibility var(--transition-duration) ease;
+}
+
+.navItem:hover .dropdown {
+  opacity: 1;
+  visibility: visible;
+}
+
+.dropdown a {
+  display: block;
+  padding: 10px 20px;
+  color: var(--text-color);
+  text-decoration: none;
+  transition: background-color var(--transition-duration) ease;
+}
+
+.dropdown a:hover {
+  background-color: #f0f0f0;
+}
+
+.main {
+  flex: 1;
+  padding: calc(var(--header-height) + 30px) 30px 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.footer {
+  background-color: #fff;
+  border-top: 1px solid var(--border-color);
+  padding: 20px 30px;
+  text-align: center;
+  font-size: 14px;
+  box-shadow: 0 -2px 4px var(--shadow-light);
+}

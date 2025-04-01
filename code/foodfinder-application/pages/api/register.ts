@@ -5,7 +5,6 @@ import dbConnect from '../../middleware/db-connect';
 import User from '../../mongoose/users/model';
 // Import libraries
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 // API Reference:
 // Endpoint: /api/register

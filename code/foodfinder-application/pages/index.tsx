@@ -1,9 +1,11 @@
 // pages/index.tsx
 import React from 'react';
-import SignIn from './sign-in';
+import Home from './home';
 
 const IndexPage: React.FC = () => {
-    return <SignIn />;
+    return (
+        <Home />
+    );
 };
 
 export default IndexPage;
