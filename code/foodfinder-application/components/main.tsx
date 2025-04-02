@@ -74,7 +74,6 @@ const NavItem: React.FC<{ link: NavLink }> = ({ link }) => {
                 const response = post
                     ? await axios.post(link.path)
                     : await axios.get(link.path);
-                console.log('API response:', response.data);
             } catch (error: any) {
                 if (error.response && error.response.status === 401) {
                     console.warn('Unauthorized! Redirecting to /auth');

@@ -1,7 +1,7 @@
-import { 
-    GetServerSideProps, 
-    GetServerSidePropsContext, 
-    GetServerSidePropsResult 
+import {
+    GetServerSideProps,
+    GetServerSidePropsContext,
+    GetServerSidePropsResult
 } from 'next';
 import { authenticate } from '../lib/auth';
 
@@ -21,16 +21,21 @@ export function withAuth<P>(
     return async (
         context: GetServerSidePropsContext
     ): Promise<GetServerSidePropsResult<P>> => {
-        // Extract the path from the request URL (adjust as needed)
         const pathname = context.req.url || '';
+        const cookies = context.req.cookies;
 
-        // If the route is protected, perform authentication
-        if (protectedRoutes.some(route => pathname.startsWith(route))) {
+        const routeIsProtected = protectedRoutes.some(route => pathname.startsWith(route));
+
+        console.log({
+            routeIsProtected,
+            pathname,
+            cookies
+        });
+        if (routeIsProtected) {
             try {
-                const authSuccess = await authenticate({
-                    cookies: context.req.headers.cookie,
-                    url: context.req.url,
-                } as any);
+                const authSuccess = await authenticate(
+                    context.req
+                );
 
                 if (!authSuccess) {
                     return {

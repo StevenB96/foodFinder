@@ -32,16 +32,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             password
         } = req.body;
 
-        // Validate input for username and password
-        if (
-            !username ||
-            !password ||
-            password.length < 8
-        ) {
-            return res.status(400).json({
-                message: 'Invalid input'
-            });
-        }
+        // // Validate input for username and password
+        // if (
+        //     !username ||
+        //     !password ||
+        //     password.length < 8
+        // ) {
+        //     return res.status(400).json({
+        //         message: 'Invalid input'
+        //     });
+        // }
 
         // Check if the user already exists
         const existingUser = await User.findOne({

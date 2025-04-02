@@ -144,7 +144,7 @@ export const getOAuthTokensFromCookies = (request: NextRequest) => {
 };
 
 export const authenticate = async (
-    request: NextRequest,
+    request: any,
 ) => {
     const {
         accessToken,
